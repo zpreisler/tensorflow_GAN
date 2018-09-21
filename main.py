@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 batch_size=64
-nsteps=24
+nsteps=8
 
 def _parse_fce(file):
     img_str=tf.read_file(file)
@@ -13,12 +13,12 @@ def _parse_fce(file):
     img_crop=tf.image.central_crop(img_decoded,0.5)
     img_resized=tf.image.resize_images(img_crop,[48,48])
     img_gray=tf.image.rgb_to_grayscale(img_resized)
-    return img_gray
+    return img_gray/255.0
 
 def dataset():
     from glob import glob
 
-    files=glob('images/*.png')
+    files=glob('images2/*.png')
     files_dataset=tf.data.Dataset.from_tensor_slices(files)
     files_dataset=files_dataset.map(_parse_fce)
 
@@ -51,12 +51,13 @@ def generator(Z):
                 kernel_size=5,
                 strides=2,
                 padding='same')
-        return conv3
+        t=tf.nn.tanh(conv3)
+        return t
 
 def discriminator(X,reuse=False):
     with tf.variable_scope("Discriminator",reuse=reuse):
         conv1=tf.layers.conv2d(inputs=X,
-                filters=6,
+                filters=12,
                 kernel_size=5,
                 padding='same',
                 activation=tf.nn.leaky_relu)
@@ -64,20 +65,20 @@ def discriminator(X,reuse=False):
         pool1=tf.layers.average_pooling2d(inputs=conv1,pool_size=2,strides=2)
 
         conv2=tf.layers.conv2d(inputs=pool1,
-                filters=12,
+                filters=24,
                 kernel_size=5,
                 padding='same',
                 activation=tf.nn.leaky_relu)
         pool2=tf.layers.average_pooling2d(inputs=conv2,pool_size=2,strides=2)
 
         conv3=tf.layers.conv2d(inputs=pool2,
-                filters=24,
+                filters=48,
                 kernel_size=5,
                 padding='same',
                 activation=tf.nn.leaky_relu)
         pool3=tf.layers.average_pooling2d(inputs=conv3,pool_size=2,strides=2)
 
-        flat=tf.reshape(pool3,(-1,6*6*24))
+        flat=tf.reshape(pool3,(-1,6*6*48))
         d_prob=tf.layers.dense(inputs=flat,units=1)
 
         return tf.sigmoid(d_prob)
@@ -112,8 +113,8 @@ def main(argv):
     generator_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
     discriminator_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
 
-    generator_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4)
-    discriminator_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4)
+    generator_optimizer=tf.train.AdamOptimizer(learning_rate=2e-5)
+    discriminator_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
 
     train_generator=generator_optimizer.minimize(generator_loss,var_list=generator_vars)
     train_discriminator=discriminator_optimizer.minimize(discriminator_loss,var_list=discriminator_vars)
@@ -121,14 +122,25 @@ def main(argv):
     img_summary=tf.summary.image('image',img_batch,max_outputs=4)
     gen_img_summary=tf.summary.image('generated_image',image_x,max_outputs=4)
 
+
     with tf.Session() as session:
+
 
         session.run(init_dataset)
         tf.global_variables_initializer().run(session=session)
 
         writer=tf.summary.FileWriter("log",session.graph)
 
-        for i in range(10000):
+        for i in range(20):
+
+            Z_batch=random.uniform(-1,1,size=[batch_size,64])
+
+            for _ in range(nsteps):
+                _,d_loss=session.run([train_discriminator,discriminator_loss],feed_dict={Z:Z_batch})
+
+            print(i)
+
+        for i in range(20000):
 
             Z_batch=random.uniform(-1,1,size=[batch_size,64])
 
@@ -147,6 +159,13 @@ def main(argv):
                 writer.add_summary(summary,i)
 
                 print("[%d]"%i,"[d_loss]",d_loss,"[g_loss]",g_loss)
+
+                #img=session.run(img_batch)
+                #print(gen_img[0])
+                #print(img[0])
+
+            #if i%1 == 0:
+            #    saver=save(session,'check')
 
 
 if __name__=="__main__":
