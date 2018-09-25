@@ -16,7 +16,7 @@ def _parse_fce(file):
 def dataset(batch_size=1):
     from glob import glob
 
-    files=glob('images2/*.png')
+    files=glob('/home/zdenek/Projects/tensorflow/patchy_ann/data_4/*.png')
     files_dataset=tf.data.Dataset.from_tensor_slices((files))
     files_dataset=files_dataset.map(_parse_fce)
 
@@ -59,7 +59,7 @@ def gauss_noise(x,std):
 def discriminator(X,reuse=False):
     with tf.variable_scope("Discriminator",reuse=reuse):
         print(X)
-        n=gauss_noise(X,std=1e2)
+        n=gauss_noise(X,std=1e1)
         print(n)
         return n
 
@@ -101,8 +101,13 @@ def main(argv):
         """Summaries"""
         writer=tf.summary.FileWriter("log",session.graph)
 
-        a,b,log=session.run([g,d,summaries],feed_dict={Z:Zbatch(1,512)})
-        writer.add_summary(log)
+        """Learning"""
+        for step in range(10):
+            print("[%d]"%step)
+            a,b,log=session.run([g,d,summaries],feed_dict={Z:Zbatch(1,512)})
+            writer.add_summary(log,global_step=step)
+
+
 if __name__=="__main__":
     import tensorflow as tf
     tf.app.run()
