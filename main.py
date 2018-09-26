@@ -37,28 +37,30 @@ def generator(Z,std):
     with tf.variable_scope("Generator"):
         with tf.variable_scope("Input"):
             print(Z)
-            dense=tf.layers.dense(inputs=Z,
-                    units=4*4*1*1*3,
+            #dense=tf.layers.dense(inputs=Z,
+            #        units=4*4*1*1*3,
                     #kernel_initializer=tf.truncated_normal_initializer(stddev=1e-1,dtype=tf.float32),
                     #bias_initializer=tf.truncated_normal_initializer(stddev=1e-3,dtype=tf.float32),
                     #kernel_initializer=tf.ones_initializer(),
-                    bias_initializer=tf.zeros_initializer(),
+            #        bias_initializer=tf.zeros_initializer(),
                     #use_bias=False,
-                    name='Dense')
-            print(dense)
+            #        name='Dense')
+            #print(dense)
 
-            m=tf.reduce_min(dense)
-            t=dense-m
-            d=tf.reduce_max(t)
+            #m=tf.reduce_min(dense)
+            #t=dense-m
+            #d=tf.reduce_max(t)
 
-            c=tf.reshape(t/d,(-1,4,4,3))
-            print(c)
+            zz=tf.reshape(Z,(-1,16,16,3))
 
-            z=tf.reshape(Z,(-1,16,16,3))
+            im=tf.image.resize_images(zz,[51,51],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-            convt=tf.layers.conv2d_transpose(inputs=z,
-                    filters=3,
-                    kernel_size=[2,2],
+            #z=tf.reshape(Z,(-1,16,16,12))
+            print(im)
+
+            convt=tf.layers.conv2d(inputs=im,
+                    filters=6,
+                    kernel_size=[4,4],
                     strides=[1,1],
                     padding='valid',
                     use_bias=False,
@@ -66,16 +68,12 @@ def generator(Z,std):
                     activation=tf.nn.relu,
                     name="c")
 
-            print(convt)
-            pool=tf.layers.average_pooling2d(inputs=convt,
-                    pool_size=3,
-                    strides=1,
-                    padding='valid',
-                    name="p")
+            print("convt",convt)
+            c=convt
 
-            print(pool)
+            cc=tf.reshape(c,(-1,48,48,3))
 
-        return pool
+        return cc
 
             #bnorm0=tf.layers.batch_normalization(c)
 
@@ -156,9 +154,11 @@ def Zbatch(n,m):
     #return random.uniform(0,1,size=[n,m])
     x=ones((n,m))
     print(x)
-    x[0][130]=0.1
-    x[0][490]=0.1
-    x[0][640]=0.1
+    x[0][130]=0.0
+    x[0][490]=0.0
+    x[0][642]=0.0
+    x[0][998]=0.0
+    x[0][1642]=0.0
     print(x)
     return x
 
@@ -168,7 +168,7 @@ def main(argv):
 
     """Batch"""
     batch_size=1
-    zbatch=16*16*3
+    zbatch=16*16*12
 
     Z=tf.placeholder(tf.float32,[None,zbatch])
     std=tf.placeholder(tf.float32)
@@ -257,6 +257,7 @@ def main(argv):
             writer.add_summary(log,global_step=step)
 
             print(gg)
+            print(gg.shape)
 
         saver.save(session,'log/last.ckpt')
 
