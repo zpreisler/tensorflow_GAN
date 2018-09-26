@@ -37,30 +37,30 @@ def generator(Z,std):
     with tf.variable_scope("Generator"):
         with tf.variable_scope("Input"):
             print(Z)
-            #dense=tf.layers.dense(inputs=Z,
-            #        units=4*4*1*1*3,
+            dense=tf.layers.dense(inputs=Z,
+                    units=16*16*1*1*12,
                     #kernel_initializer=tf.truncated_normal_initializer(stddev=1e-1,dtype=tf.float32),
                     #bias_initializer=tf.truncated_normal_initializer(stddev=1e-3,dtype=tf.float32),
                     #kernel_initializer=tf.ones_initializer(),
-            #        bias_initializer=tf.zeros_initializer(),
-                    #use_bias=False,
-            #        name='Dense')
-            #print(dense)
+                    bias_initializer=tf.zeros_initializer(),
+                    use_bias=False,
+                    name='Dense')
+            print(dense)
 
             #m=tf.reduce_min(dense)
             #t=dense-m
             #d=tf.reduce_max(t)
 
-            zz=tf.reshape(Z,(-1,16,16,3))
+            zz=tf.reshape(dense,(-1,16,16,3))
 
-            im=tf.image.resize_images(zz,[51,51],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            im=tf.image.resize_images(zz,[52,52],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
             #z=tf.reshape(Z,(-1,16,16,12))
             print(im)
 
             convt=tf.layers.conv2d(inputs=im,
-                    filters=6,
-                    kernel_size=[4,4],
+                    filters=3,
+                    kernel_size=[1,1],
                     strides=[1,1],
                     padding='valid',
                     use_bias=False,
@@ -71,7 +71,7 @@ def generator(Z,std):
             print("convt",convt)
             c=convt
 
-            cc=tf.reshape(c,(-1,48,48,3))
+            cc=tf.reshape(c,(-1,52,52,3))
 
         return cc
 
