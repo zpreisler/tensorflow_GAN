@@ -38,56 +38,85 @@ def generator(Z,std):
         with tf.variable_scope("Input"):
             print(Z)
             dense=tf.layers.dense(inputs=Z,
-                    units=12*12*1*1*48,
-                    kernel_initializer=tf.truncated_normal_initializer(stddev=1e-1,dtype=tf.float32),
-                    bias_initializer=tf.truncated_normal_initializer(stddev=1e-3,dtype=tf.float32),
-                    use_bias=False,
+                    units=4*4*1*1*3,
+                    #kernel_initializer=tf.truncated_normal_initializer(stddev=1e-1,dtype=tf.float32),
+                    #bias_initializer=tf.truncated_normal_initializer(stddev=1e-3,dtype=tf.float32),
+                    #kernel_initializer=tf.ones_initializer(),
+                    bias_initializer=tf.zeros_initializer(),
+                    #use_bias=False,
                     name='Dense')
             print(dense)
 
-            c=tf.reshape(dense,(-1,12,12,48))
+            m=tf.reduce_min(dense)
+            t=dense-m
+            d=tf.reduce_max(t)
+
+            c=tf.reshape(t/d,(-1,4,4,3))
             print(c)
 
-            bnorm0=tf.layers.batch_normalization(c)
+            z=tf.reshape(Z,(-1,16,16,3))
 
-        with tf.variable_scope("Convolution_transpose"):
-            convt_1=tf.layers.conv2d_transpose(inputs=bnorm0,
-                    filters=48,
-                    kernel_size=[5,5],
-                    strides=[1,1],
-                    padding='same',
-                    activation=tf.nn.leaky_relu,
-                    use_bias=False,
-                    name="convt_1")
-            print(convt_1)
-
-            bnorm1=tf.layers.batch_normalization(convt_1)
-
-            convt_2=tf.layers.conv2d_transpose(inputs=bnorm1,
-                    filters=24,
-                    kernel_size=[5,5],
-                    strides=[2,2],
-                    padding='same',
-                    activation=tf.nn.leaky_relu,
-                    use_bias=False,
-                    name="convt_2")
-            print(convt_2)
-
-            bnorm2=tf.layers.batch_normalization(convt_2)
-
-            convt_3=tf.layers.conv2d_transpose(inputs=bnorm2,
+            convt=tf.layers.conv2d_transpose(inputs=z,
                     filters=3,
-                    kernel_size=[5,5],
-                    strides=[2,2],
-                    padding='same',
+                    kernel_size=[2,2],
+                    strides=[1,1],
+                    padding='valid',
                     use_bias=False,
-                    activation=tf.tanh,
-                    name="convt_3")
-            print(convt_3)
+                    kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.relu,
+                    name="c")
 
-        with tf.variable_scope("Output"):
-            g=convt_3
-        return g
+            print(convt)
+            pool=tf.layers.average_pooling2d(inputs=convt,
+                    pool_size=3,
+                    strides=1,
+                    padding='valid',
+                    name="p")
+
+            print(pool)
+
+        return pool
+
+            #bnorm0=tf.layers.batch_normalization(c)
+
+        #with tf.variable_scope("Convolution_transpose"):
+        #    convt_1=tf.layers.conv2d_transpose(inputs=bnorm0,
+        #            filters=48,
+        #            kernel_size=[5,5],
+        #            strides=[1,1],
+        #            padding='same',
+        #            activation=tf.nn.leaky_relu,
+        #            use_bias=False,
+        #            name="convt_1")
+        #    print(convt_1)
+
+        #    bnorm1=tf.layers.batch_normalization(convt_1)
+
+        #    convt_2=tf.layers.conv2d_transpose(inputs=bnorm1,
+        #            filters=24,
+        #            kernel_size=[5,5],
+        #            strides=[2,2],
+        #            padding='same',
+        #            activation=tf.nn.leaky_relu,
+        #            use_bias=False,
+        #            name="convt_2")
+        #    print(convt_2)
+
+        #    bnorm2=tf.layers.batch_normalization(convt_2)
+
+        #    convt_3=tf.layers.conv2d_transpose(inputs=bnorm2,
+        #            filters=3,
+        #            kernel_size=[5,5],
+        #            strides=[2,2],
+        #            padding='same',
+        #            use_bias=False,
+        #            activation=tf.tanh,
+        #            name="convt_3")
+        #    print(convt_3)
+
+        #with tf.variable_scope("Output"):
+        #    g=convt_3
+        #return g
 
 def discriminator(X,std,reuse=False):
     with tf.variable_scope("Discriminator",reuse=reuse):
@@ -123,17 +152,25 @@ def discriminator(X,std,reuse=False):
         return X_noise,d
 
 def Zbatch(n,m):
-    from numpy import random
-    return random.uniform(0,1,size=[n,m])
+    from numpy import random,zeros,ones
+    #return random.uniform(0,1,size=[n,m])
+    x=ones((n,m))
+    print(x)
+    x[0][130]=0.1
+    x[0][490]=0.1
+    x[0][640]=0.1
+    print(x)
+    return x
 
 def main(argv):
     print("Generative Adversarial Network")
     from numpy import random
 
     """Batch"""
-    batch_size=128
+    batch_size=1
+    zbatch=16*16*3
 
-    Z=tf.placeholder(tf.float32,[None,512])
+    Z=tf.placeholder(tf.float32,[None,zbatch])
     std=tf.placeholder(tf.float32)
     img_batch,init_dataset=dataset(batch_size)
 
@@ -141,8 +178,8 @@ def main(argv):
     g=generator(Z,std)
 
     """Discriminator"""
-    d_noise,d_logits=discriminator(img_batch,std)
-    d_g_noise,g_logits=discriminator(g,std,reuse=True)
+    #d_noise,d_logits=discriminator(img_batch,std)
+    #d_g_noise,g_logits=discriminator(g,std,reuse=True)
 
     """logits"""
     #g_loss=tf.reduce_mean(
@@ -150,11 +187,11 @@ def main(argv):
     #            labels=tf.ones_like(g_logits))
     #        )
 
-    real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(d_logits),logits=d_logits)
-    fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(g_logits),logits=g_logits)
+    #real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(d_logits),logits=d_logits)
+    #fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(g_logits),logits=g_logits)
 
-    d_loss=real_loss+fake_loss
-    g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(g_logits),g_logits)
+    #d_loss=real_loss+fake_loss
+    #g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(g_logits),g_logits)
 
     #d_loss=tf.reduce_mean(
     #        tf.nn.sigmoid_cross_entropy_with_logits(logits=d_logits,
@@ -164,32 +201,33 @@ def main(argv):
     #        )
 
     """Variables"""
-    g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
-    d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
+    #g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
+    #d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
 
     """Optimizer"""
-    g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
-    d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
+    #g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
+    #d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
 
     """Train"""
-    g_train=g_optimizer.minimize(g_loss,var_list=g_vars)
-    d_train=g_optimizer.minimize(d_loss,var_list=d_vars)
+    #g_train=g_optimizer.minimize(g_loss,var_list=g_vars)
+    #d_train=g_optimizer.minimize(d_loss,var_list=d_vars)
 
     """Summaries"""
-    all_vars=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    for v in all_vars:
-        tf.summary.histogram(v.name,v)
-        print(v)
+    #all_vars=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+    #for v in all_vars:
+    #    tf.summary.histogram(v.name,v)
+    #    print(v)
 
-    tf.summary.scalar("Generator_loss",g_loss)
-    tf.summary.scalar("Discriminator_loss",d_loss)
+    #tf.summary.scalar("Generator_loss",g_loss)
+    #tf.summary.scalar("Discriminator_loss",d_loss)
 
     tf.summary.image("Generator",g,max_outputs=24)
-    tf.summary.image("Discrminator G",d_g_noise,max_outputs=24)
-    tf.summary.image("Discrminator with noise",d_noise,max_outputs=24)
-    tf.summary.image("Discrminator image",img_batch,max_outputs=24)
+    #tf.summary.image("Discrminator G",d_g_noise,max_outputs=24)
+    #tf.summary.image("Discrminator with noise",d_noise,max_outputs=24)
+    #tf.summary.image("Discrminator image",img_batch,max_outputs=24)
 
     summaries=tf.summary.merge_all()
+
 
     """Checkpoints"""
     saver=tf.train.Saver()
@@ -202,23 +240,25 @@ def main(argv):
         session.run(init_dataset)
 
         """Summaries"""
-        writer=tf.summary.FileWriter("log2",session.graph)
+        writer=tf.summary.FileWriter("log",session.graph)
 
         """Learning"""
-        for step in range(1,10000):
+        for step in range(1,2):
 
-            for d_step in range(6):
-                _,dd=session.run([d_train,d_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
+            #for d_step in range(6):
+            #    _,dd=session.run([d_train,d_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
 
-            for g_step in range(6):
-                _,gg=session.run([g_train,g_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
+            #for g_step in range(6):
+            #    _,gg=session.run([g_train,g_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
 
-            print("[%d] d:%lf g:%lf"%(step,dd,gg))
+            #print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
-            log=session.run(summaries,feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
+            gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(batch_size,zbatch),std:0})
             writer.add_summary(log,global_step=step)
 
-        saver.save(session,'log2/last.ckpt')
+            print(gg)
+
+        saver.save(session,'log/last.ckpt')
 
 
 if __name__=="__main__":
