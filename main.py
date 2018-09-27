@@ -38,44 +38,49 @@ def generator(Z,std):
         with tf.variable_scope("Input"):
             print(Z)
             dense=tf.layers.dense(inputs=Z,
-                    units=16*16*1*1*12,
-                    #kernel_initializer=tf.truncated_normal_initializer(stddev=1e-1,dtype=tf.float32),
-                    #bias_initializer=tf.truncated_normal_initializer(stddev=1e-3,dtype=tf.float32),
-                    #kernel_initializer=tf.ones_initializer(),
+                    units=16*16*1*1*3,
                     bias_initializer=tf.zeros_initializer(),
                     use_bias=False,
                     name='Dense')
             print(dense)
 
-            #m=tf.reduce_min(dense)
-            #t=dense-m
-            #d=tf.reduce_max(t)
-
             zz=tf.reshape(dense,(-1,16,16,3))
-
-            im=tf.image.resize_images(zz,[52,52],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-
-            #z=tf.reshape(Z,(-1,16,16,12))
+            im=tf.image.resize_images(zz,[32,32],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             print(im)
 
-            convt=tf.layers.conv2d(inputs=im,
-                    filters=3,
-                    kernel_size=[1,1],
+            conv=tf.layers.conv2d(inputs=im,
+                    filters=48,
+                    kernel_size=[3,3],
                     strides=[1,1],
                     padding='valid',
                     use_bias=False,
-                    kernel_initializer=tf.ones_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.relu,
                     name="c")
 
-            print("convt",convt)
-            c=convt
+            im=tf.image.resize_images(conv,[50,50],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            print(conv)
+            
+            conv=tf.layers.batch_normalization(conv)
 
-            cc=tf.reshape(c,(-1,52,52,3))
+            print("conv",conv)
+            conv=tf.layers.conv2d(inputs=im,
+                    filters=3,
+                    kernel_size=[3,3],
+                    strides=[1,1],
+                    padding='valid',
+                    use_bias=False,
+                    #kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.relu,
+                    name="c2")
 
-        return cc
+            #c=conv
+            c=tf.layers.batch_normalization(conv)
+            print(c)
 
-            #bnorm0=tf.layers.batch_normalization(c)
+        return tf.tanh(c)
+
+        #bnorm0=tf.layers.batch_normalization(c)
 
         #with tf.variable_scope("Convolution_transpose"):
         #    convt_1=tf.layers.conv2d_transpose(inputs=bnorm0,
@@ -147,28 +152,19 @@ def discriminator(X,std,reuse=False):
             f=tf.layers.flatten(t)
             d=tf.layers.dense(f,units=1)
 
-        return X_noise,d
+        return X_noise,tf.sigmoid(d)
 
 def Zbatch(n,m):
     from numpy import random,zeros,ones
-    #return random.uniform(0,1,size=[n,m])
-    x=ones((n,m))
-    print(x)
-    x[0][130]=0.0
-    x[0][490]=0.0
-    x[0][642]=0.0
-    x[0][998]=0.0
-    x[0][1642]=0.0
-    print(x)
-    return x
+    return random.uniform(0,1,size=[n,m])
 
 def main(argv):
     print("Generative Adversarial Network")
     from numpy import random
 
     """Batch"""
-    batch_size=1
-    zbatch=16*16*12
+    batch_size=64
+    zbatch=3000
 
     Z=tf.placeholder(tf.float32,[None,zbatch])
     std=tf.placeholder(tf.float32)
@@ -178,53 +174,55 @@ def main(argv):
     g=generator(Z,std)
 
     """Discriminator"""
-    #d_noise,d_logits=discriminator(img_batch,std)
-    #d_g_noise,g_logits=discriminator(g,std,reuse=True)
+    d_noise,d_logits=discriminator(img_batch,std)
+    d_g_noise,g_logits=discriminator(g,std,reuse=True)
 
     """logits"""
-    #g_loss=tf.reduce_mean(
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
-    #            labels=tf.ones_like(g_logits))
-    #        )
+    g_loss=tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
+                labels=tf.ones_like(g_logits))
+            )
 
-    #real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(d_logits),logits=d_logits)
-    #fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(g_logits),logits=g_logits)
+    real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(d_logits),logits=d_logits)
+    fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(g_logits),logits=g_logits)
 
-    #d_loss=real_loss+fake_loss
-    #g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(g_logits),g_logits)
+    d_loss=real_loss+fake_loss
+    g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(g_logits),g_logits)
 
-    #d_loss=tf.reduce_mean(
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=d_logits,
-    #            labels=tf.ones_like(d_logits))+
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
-    #            labels=tf.zeros_like(g_logits))
-    #        )
+    d_loss=tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(logits=d_logits,
+                labels=tf.ones_like(d_logits))+
+            tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
+                labels=tf.zeros_like(g_logits))
+            )
 
     """Variables"""
-    #g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
-    #d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
+    g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
+    d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
 
     """Optimizer"""
     #g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
     #d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
+    g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
+    d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
 
     """Train"""
-    #g_train=g_optimizer.minimize(g_loss,var_list=g_vars)
-    #d_train=g_optimizer.minimize(d_loss,var_list=d_vars)
+    g_train=g_optimizer.minimize(g_loss,var_list=g_vars)
+    d_train=g_optimizer.minimize(d_loss,var_list=d_vars)
 
     """Summaries"""
-    #all_vars=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    #for v in all_vars:
-    #    tf.summary.histogram(v.name,v)
-    #    print(v)
+    all_vars=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+    for v in all_vars:
+        tf.summary.histogram(v.name,v)
+        print(v)
 
-    #tf.summary.scalar("Generator_loss",g_loss)
-    #tf.summary.scalar("Discriminator_loss",d_loss)
+    tf.summary.scalar("Generator_loss",g_loss)
+    tf.summary.scalar("Discriminator_loss",d_loss)
 
     tf.summary.image("Generator",g,max_outputs=24)
-    #tf.summary.image("Discrminator G",d_g_noise,max_outputs=24)
-    #tf.summary.image("Discrminator with noise",d_noise,max_outputs=24)
-    #tf.summary.image("Discrminator image",img_batch,max_outputs=24)
+    tf.summary.image("Discrminator G",d_g_noise,max_outputs=24)
+    tf.summary.image("Discrminator with noise",d_noise,max_outputs=24)
+    tf.summary.image("Discrminator image",img_batch,max_outputs=24)
 
     summaries=tf.summary.merge_all()
 
@@ -240,26 +238,27 @@ def main(argv):
         session.run(init_dataset)
 
         """Summaries"""
-        writer=tf.summary.FileWriter("log",session.graph)
+        writer=tf.summary.FileWriter("log/run2",session.graph)
 
         """Learning"""
-        for step in range(1,2):
+        for step in range(1,20000):
 
-            #for d_step in range(6):
-            #    _,dd=session.run([d_train,d_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
+            for d_step in range(6):
+                _,dd=session.run([d_train,d_loss],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
 
-            #for g_step in range(6):
-            #    _,gg=session.run([g_train,g_loss],feed_dict={Z:Zbatch(batch_size,512),std:5e-1/step})
+            for g_step in range(6):
+                _,gg=session.run([g_train,g_loss],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
 
-            #print("[%d] d:%lf g:%lf"%(step,dd,gg))
+            print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
-            gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(batch_size,zbatch),std:0})
+            gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
+            #gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(1,zbatch),std:0})
             writer.add_summary(log,global_step=step)
 
-            print(gg)
-            print(gg.shape)
+            #print(gg)
+            #print(gg.shape)
 
-        saver.save(session,'log/last.ckpt')
+        saver.save(session,'log/run2/last.ckpt')
 
 
 if __name__=="__main__":
