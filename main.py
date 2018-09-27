@@ -201,8 +201,6 @@ def main(argv):
     d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
 
     """Optimizer"""
-    #g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
-    #d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-4,epsilon=1e-2)
     g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
     d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
 
@@ -252,13 +250,12 @@ def main(argv):
             print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
             gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
-            #gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(1,zbatch),std:0})
             writer.add_summary(log,global_step=step)
 
             #print(gg)
             #print(gg.shape)
 
-        saver.save(session,'log/run2/last.ckpt')
+        saver.save(session,'log/run5/last.ckpt')
 
 
 if __name__=="__main__":
