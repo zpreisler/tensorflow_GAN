@@ -4,29 +4,6 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
 
-def _parse_fce(file):
-    from numpy.random import uniform
-    img_str=tf.read_file(file)
-    img_decoded=tf.image.decode_png(img_str,channels=3)
-    img_crop=tf.image.central_crop(img_decoded,0.5)
-    img_resized=tf.image.resize_images(img_crop,[48,48])
-    return img_resized/255.0
-
-def dataset(batch_size=1):
-    from glob import glob
-
-    files=glob('/home/zdenek/Projects/tensorflow/patchy_ann/data_4/*.png')
-    files_dataset=tf.data.Dataset.from_tensor_slices((files))
-    files_dataset=files_dataset.map(_parse_fce)
-
-    dataset=files_dataset.repeat().batch(batch_size)
-    iterator=tf.data.Iterator.from_structure(dataset.output_types,dataset.output_shapes)
-
-    img_batch=iterator.get_next()
-    init_dataset=iterator.make_initializer(dataset)
-
-    return img_batch,init_dataset
-
 def gauss_noise(x,std,shape,name='Noise'):
     with tf.name_scope(name):
         n=tf.truncated_normal(shape=tf.shape(x),mean=0.0,stddev=std,dtype=tf.float32)
@@ -35,91 +12,30 @@ def gauss_noise(x,std,shape,name='Noise'):
 
 def generator(Z,std):
     with tf.variable_scope("Generator"):
-        with tf.variable_scope("Input"):
-            print(Z)
-            dense=tf.layers.dense(inputs=Z,
-                    units=16*16*1*1*3,
-                    bias_initializer=tf.zeros_initializer(),
-                    use_bias=False,
-                    name='Dense')
-            print(dense)
+        print("Generator input:",Z)
 
-            zz=tf.reshape(dense,(-1,16,16,3))
-            im=tf.image.resize_images(zz,[32,32],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            print(im)
+        dense=tf.layers.dense(inputs=Z,
+                units=16*16*1*1*3,
+                use_bias=False,
+                name='Dense')
+        print("Generator dense:",dense)
 
-            conv=tf.layers.conv2d(inputs=im,
-                    filters=48,
-                    kernel_size=[3,3],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.relu,
-                    name="c")
+        zz=tf.reshape(dense,(-1,16,16,3))
+        img=tf.image.resize_images(zz,[50,50],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        print(im)
 
-            im=tf.image.resize_images(conv,[50,50],method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            print(conv)
-            
-            conv=tf.layers.batch_normalization(conv)
+        conv=tf.layers.conv2d(inputs=img,
+                filters=3,
+                kernel_size=[3,3],
+                strides=[1,1],
+                padding='valid',
+                use_bias=False,
+                kernel_initializer=tf.ones_initializer(),
+                activation=tf.nn.relu,
+                name="c")
+        print(conv)
 
-            print("conv",conv)
-            conv=tf.layers.conv2d(inputs=im,
-                    filters=3,
-                    kernel_size=[3,3],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.relu,
-                    name="c2")
-
-            #c=conv
-            c=tf.layers.batch_normalization(conv)
-            print(c)
-
-        return tf.tanh(c)
-
-        #bnorm0=tf.layers.batch_normalization(c)
-
-        #with tf.variable_scope("Convolution_transpose"):
-        #    convt_1=tf.layers.conv2d_transpose(inputs=bnorm0,
-        #            filters=48,
-        #            kernel_size=[5,5],
-        #            strides=[1,1],
-        #            padding='same',
-        #            activation=tf.nn.leaky_relu,
-        #            use_bias=False,
-        #            name="convt_1")
-        #    print(convt_1)
-
-        #    bnorm1=tf.layers.batch_normalization(convt_1)
-
-        #    convt_2=tf.layers.conv2d_transpose(inputs=bnorm1,
-        #            filters=24,
-        #            kernel_size=[5,5],
-        #            strides=[2,2],
-        #            padding='same',
-        #            activation=tf.nn.leaky_relu,
-        #            use_bias=False,
-        #            name="convt_2")
-        #    print(convt_2)
-
-        #    bnorm2=tf.layers.batch_normalization(convt_2)
-
-        #    convt_3=tf.layers.conv2d_transpose(inputs=bnorm2,
-        #            filters=3,
-        #            kernel_size=[5,5],
-        #            strides=[2,2],
-        #            padding='same',
-        #            use_bias=False,
-        #            activation=tf.tanh,
-        #            name="convt_3")
-        #    print(convt_3)
-
-        #with tf.variable_scope("Output"):
-        #    g=convt_3
-        #return g
+        return tf.tanh(conv)
 
 def discriminator(X,std,reuse=False):
     with tf.variable_scope("Discriminator",reuse=reuse):
@@ -161,6 +77,7 @@ def Zbatch(n,m):
 def main(argv):
     print("Generative Adversarial Network")
     from numpy import random
+    from model.data_pipeline import dataset
 
     """Batch"""
     batch_size=64
@@ -236,7 +153,7 @@ def main(argv):
         session.run(init_dataset)
 
         """Summaries"""
-        writer=tf.summary.FileWriter("log/run2",session.graph)
+        writer=tf.summary.FileWriter("log/run5",session.graph)
 
         """Learning"""
         for step in range(1,20000):
