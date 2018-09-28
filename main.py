@@ -4,43 +4,7 @@ from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
 
-#def gauss_noise(x,std,shape,name='Noise'):
-#    with tf.name_scope(name):
-#        n=tf.truncated_normal(shape=tf.shape(x),mean=0.0,stddev=std,dtype=tf.float32)
-#        a=tf.add(x,n)
-#        return tf.reshape(a,shape)
-#
-#def discriminator(X,std,reuse=False):
-#    with tf.variable_scope("Discriminator",reuse=reuse):
-#        X_noise=gauss_noise(X,std=std,shape=(-1,48,48,3),name="Noise")
-#
-#        conv_1=tf.layers.conv2d(inputs=X_noise,
-#                filters=64,
-#                kernel_size=5,
-#                strides=[2,2],
-#                padding='same',
-#                activation=tf.nn.leaky_relu,
-#                bias_initializer=tf.truncated_normal_initializer(stddev=1e-2,dtype=tf.float32),
-#                name="conv_1")
-#        print(conv_1)
-#
-#        conv_2=tf.layers.conv2d(inputs=conv_1,
-#                filters=128,
-#                kernel_size=5,
-#                strides=[2,2],
-#                padding='same',
-#                activation=tf.nn.leaky_relu,
-#                bias_initializer=tf.truncated_normal_initializer(stddev=1e-2,dtype=tf.float32),
-#                name="conv_2")
-#        print(conv_2)
-#
-#        t=tf.layers.dropout(conv_2,rate=0.2)
-#        f=tf.layers.flatten(t)
-#        d=tf.layers.dense(f,units=1)
-#
-#    return X_noise,tf.sigmoid(d)
-#
-def Zbatch(n,m):
+def zbatch(n,m):
     from numpy import random,zeros,ones
     return random.uniform(0,1,size=[n,m])
 
@@ -48,78 +12,21 @@ def main(argv):
     print("Generative Adversarial Network")
     from numpy import random
     from model.data_pipeline import dataset
-    from model.model import generator
+    from model.model import generator,discriminator,GAN
 
     """Batch"""
-    batch_size=64
-    zbatch=3000
+    batch_size=32
+    zbatch_size=1024
 
-    Z=tf.placeholder(tf.float32,[None,zbatch])
-    #std=tf.placeholder(tf.float32)
-    img_batch,init_dataset=dataset(batch_size)
+    img_batch,init_dataset=dataset(batch_size=batch_size)
 
-    """Generator"""
-    G=generator(Z)
-    g=G.output_image
+    """GAN"""
 
+    z=tf.placeholder(tf.float32,[None,zbatch_size])
+    gan=GAN(img_batch,z=z)
 
-    #D=generator(img_batch)
-    #Dg=generator(g)
-
-    #"""Discriminator"""
-    #d_noise,d_logits=discriminator(img_batch,std)
-    #d_g_noise,g_logits=discriminator(g,std,reuse=True)
-
-    #"""logits"""
-    #g_loss=tf.reduce_mean(
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
-    #            labels=tf.ones_like(g_logits))
-    #        )
-
-    #real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(d_logits),logits=d_logits)
-    #fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(g_logits),logits=g_logits)
-
-    #d_loss=real_loss+fake_loss
-    #g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(g_logits),g_logits)
-
-    #d_loss=tf.reduce_mean(
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=d_logits,
-    #            labels=tf.ones_like(d_logits))+
-    #        tf.nn.sigmoid_cross_entropy_with_logits(logits=g_logits,
-    #            labels=tf.zeros_like(g_logits))
-    #        )
-
-    #"""Variables"""
-    #g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
-    #d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
-
-    #"""Optimizer"""
-    #g_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
-    #d_optimizer=tf.train.AdamOptimizer(learning_rate=1e-5)
-
-    #"""Train"""
-    #g_train=g_optimizer.minimize(g_loss,var_list=g_vars)
-    #d_train=g_optimizer.minimize(d_loss,var_list=d_vars)
-
-    #"""Summaries"""
-    #all_vars=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    #for v in all_vars:
-    #    tf.summary.histogram(v.name,v)
-    #    print(v)
-
-    #tf.summary.scalar("Generator_loss",g_loss)
-    #tf.summary.scalar("Discriminator_loss",d_loss)
-
-    #tf.summary.image("Generator",g,max_outputs=24)
-    #tf.summary.image("Discrminator G",d_g_noise,max_outputs=24)
-    #tf.summary.image("Discrminator with noise",d_noise,max_outputs=24)
-    #tf.summary.image("Discrminator image",img_batch,max_outputs=24)
-
-    #summaries=tf.summary.merge_all()
-
-
-    #"""Checkpoints"""
-    #saver=tf.train.Saver()
+    """Checkpoints"""
+    saver=tf.train.Saver()
 
     with tf.Session() as session:
         print("Session")
@@ -128,27 +35,27 @@ def main(argv):
         tf.global_variables_initializer().run(session=session)
         session.run(init_dataset)
 
-        #"""Summaries"""
-        #writer=tf.summary.FileWriter("log/run5",session.graph)
+        """Summaries"""
+        writer=tf.summary.FileWriter("log/run",session.graph)
 
-        #"""Learning"""
-        #for step in range(1,20000):
+        """Learning"""
+        for step in range(1,200):
 
-        #    for d_step in range(6):
-        #        _,dd=session.run([d_train,d_loss],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
+            img=session.run(gan.g.output_image,feed_dict={z:zbatch(batch_size,zbatch_size)})
 
-        #    for g_step in range(6):
-        #        _,gg=session.run([g_train,g_loss],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
+            for d_step in range(6):
+                _,dd=session.run([gan.d_train,gan.d_loss],feed_dict={z:zbatch(batch_size,zbatch_size)})
 
-        #    print("[%d] d:%lf g:%lf"%(step,dd,gg))
+            for g_step in range(6):
+                _,gg=session.run([gan.g_train,gan.g_loss],feed_dict={z:zbatch(batch_size,zbatch_size)})
 
-        #    gg,log=session.run([g,summaries],feed_dict={Z:Zbatch(batch_size,zbatch),std:9e-1/step})
-        #    writer.add_summary(log,global_step=step)
+            if step%20 is 0:
+                print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
-            #print(gg)
-            #print(gg.shape)
+                log=session.run(gan.summaries,feed_dict={z:zbatch(batch_size,zbatch_size)})
+                writer.add_summary(log,global_step=step)
 
-        #saver.save(session,'log/run5/last.ckpt')
+        saver.save(session,'log/run/last.ckpt')
 
 
 if __name__=="__main__":

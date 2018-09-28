@@ -44,6 +44,61 @@ class discriminator:
                     activation=tf.nn.leaky_relu,
                     name="conv2d")
 
-            self.flatten=tf.layers.flatten(conv2d)
-            p=tf.layers.dense(f,units=1)
+            self.flatten=tf.layers.flatten(self.conv2d)
+            p=tf.layers.dense(self.flatten,units=1)
             self.logits=tf.sigmoid(p)
+
+    def gauss_noise(x,std,shape,name='Noise'):
+        with tf.name_scope(name):
+            n=tf.truncated_normal(shape=tf.shape(x),mean=0.0,stddev=std,dtype=tf.float32)
+            a=tf.add(x,n)
+        return tf.reshape(a,shape)
+
+class GAN:
+    def __init__(self,x,z):
+        import tensorflow as tf
+        self.x=x
+        self.z=z
+        self.g=generator(self.z)
+
+        self.real_d=discriminator(self.x)
+        self.fake_d=discriminator(self.g.output_image,reuse=True)
+
+        """logits"""
+        with tf.name_scope('real_loss'):
+            self.real_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(self.real_d.logits),logits=self.real_d.logits)
+
+        with tf.name_scope('fake_loss'):
+            self.fake_loss=tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(self.fake_d.logits),logits=self.fake_d.logits)
+
+        with tf.name_scope('discriminator_loss'):
+            self.d_loss=self.real_loss+self.fake_loss
+
+        with tf.name_scope('generator_loss'):
+            self.g_loss=tf.losses.sigmoid_cross_entropy(tf.ones_like(self.fake_d.logits),self.fake_d.logits)
+
+        """Variables"""
+        self.g_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Generator")
+        self.d_vars=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,scope="Discriminator")
+
+        """Optimizer"""
+        with tf.variable_scope('generator_optimizer'):
+            self.g_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-5)
+
+        with tf.variable_scope('discriminator_optimizer'):
+            self.d_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-5)
+
+        """Train"""
+        with tf.variable_scope('generator_training'):
+            self.g_train=self.g_optimizer.minimize(self.g_loss,var_list=self.g_vars)
+
+        with tf.variable_scope('discriminator_training'):
+            self.d_train=self.g_optimizer.minimize(self.d_loss,var_list=self.d_vars)
+
+        tf.summary.scalar("Generator_loss",self.g_loss)
+        tf.summary.scalar("Discriminator_loss",self.d_loss)
+
+        tf.summary.image("Generator_image",self.g.output_image,max_outputs=24)
+        tf.summary.image("Discrminator_image",self.x,max_outputs=24)
+
+        self.summaries=tf.summary.merge_all()

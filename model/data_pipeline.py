@@ -7,15 +7,16 @@ def _parse_fce(file):
     img_resized=tf.image.resize_images(img_crop,[48,48])
     return img_resized/255.0
 
-def dataset(batch_size=1):
+def dataset(files_str='/home/zdenek/Projects/tensorflow/patchy_ann/data_4/*.png',batch_size=1):
     from glob import glob
     import tensorflow as tf
 
-    files=glob('/home/zdenek/Projects/tensorflow/patchy_ann/data_4/*.png')
+    files=glob(files_str)
     files_dataset=tf.data.Dataset.from_tensor_slices((files))
     files_dataset=files_dataset.map(_parse_fce)
 
-    dataset=files_dataset.repeat().batch(batch_size)
+    #dataset=files_dataset.repeat().batch(batch_size)
+    dataset=files_dataset.batch(batch_size)
     iterator=tf.data.Iterator.from_structure(dataset.output_types,dataset.output_shapes)
 
     img_batch=iterator.get_next()
