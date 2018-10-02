@@ -56,7 +56,7 @@ def main(argv):
     batch_size=32
     zbatch_size=1024
 
-    img_batch,init_dataset=dataset(batch_size=batch_size)
+    img_batch,init_dataset=dataset("images/*.png",batch_size=batch_size)
 
     """GAN"""
 
