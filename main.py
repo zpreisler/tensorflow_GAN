@@ -81,30 +81,6 @@ def main(argv):
 
         from matplotlib.pyplot import imshow,show,figure
 
-        #var=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope="Discriminator")
-        #for v in var:
-        #    print(v)
-
-        #session.run(img_batch)
-
-        #conv,pool,conv2,pool2,conv3=session.run([gan.real_d.conv2d,
-        #    gan.real_d.pool,
-        #    gan.real_d.conv2d_2,
-        #    gan.real_d.pool_2,
-        #    gan.real_d.conv2d_3],
-        #    feed_dict={z:zbatch(batch_size,zbatch_size)}
-        #    )
-
-        #img_plot(conv)
-        #img_plot(pool)
-        #img_plot(conv2)
-        #img_plot(pool2)
-        #img_plot(conv3)
-
-        #show()
-    
-        #count=0
-
         for step in range(1,20000):
 
             img=session.run(gan.g.output_image,feed_dict={z:zbatch(batch_size,zbatch_size)})
@@ -121,15 +97,7 @@ def main(argv):
                 log=session.run(gan.summaries,feed_dict={z:zbatch(batch_size,zbatch_size)})
                 writer.add_summary(log,global_step=step)
 
-            #if step%5 is 0:
-            #    fd,rd=session.run([gan.fake_d.conv2d_3,gan.real_d.conv2d_3],feed_dict={z:zbatch(batch_size,zbatch_size)})
-            #    img_save(fd,prefix="fd",count=count)
-            #    img_save(rd,prefix="rd",count=count)
-
-            #    count+=1
-                #show()
-
-        saver.save(session,'log/run2/last.ckpt')
+            saver.save(session,'log/run2/last.ckpt')
 
 
 if __name__=="__main__":

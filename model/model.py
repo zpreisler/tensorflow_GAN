@@ -7,81 +7,27 @@ class generator:
         import tensorflow as tf
         with tf.variable_scope("Generator"):
 
-            self.dense=tf.layers.dense(inputs=self.z,
-                    units=58*58*1,
-                    use_bias=False,
+            self.dense1=tf.layers.dense(inputs=self.z,
+                    units=2048,
+                    #use_bias=False,
                     activation=tf.nn.relu,
-                    name='dense')
+                    name='dense_1')
 
-            self.dense_reshape=tf.reshape(self.dense,(-1,58,58,1),name='reshape')
+            self.dense2=tf.layers.dense(inputs=self.dense1,
+                    units=1024,
+                    #use_bias=False,
+                    activation=tf.nn.relu,
+                    name='dense_2')
 
-            self.conv2d=tf.layers.conv2d_transpose(inputs=self.dense_reshape,
-                    filters=128,
-                    kernel_size=[3,3],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d')
+            self.dense3=tf.layers.dense(inputs=self.dense2,
+                    units=64*64,
+                    #use_bias=False,
+                    activation=tf.nn.relu,
+                    name='dense_3')
 
-            self.conv2d_2=tf.layers.conv2d_transpose(inputs=self.conv2d,
-                    filters=128,
-                    kernel_size=[3,3],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d_2')
+            self.dense_reshape=tf.reshape(self.dense3,(-1,64,64,1),name='reshape')
 
-            self.conv2d_3=tf.layers.conv2d_transpose(inputs=self.conv2d_2,
-                    filters=64,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d_3')
-
-            self.conv2d_4=tf.layers.conv2d_transpose(inputs=self.conv2d_3,
-                    filters=64,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d_4')
-
-            self.conv2d_5=tf.layers.conv2d_transpose(inputs=self.conv2d_4,
-                    filters=32,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d_5')
-
-            self.conv2d_6=tf.layers.conv2d_transpose(inputs=self.conv2d_5,
-                    filters=1,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    activation=tf.nn.leaky_relu,
-                    name='conv2d_6')
-            
-            self.output_image=tf.tanh(self.conv2d_6)
+            self.output_image=self.dense_reshape
 
 class discriminator:
     def __init__(self,x,reuse=False):
@@ -176,10 +122,10 @@ class GAN:
 
         """Optimizer"""
         with tf.variable_scope('generator_optimizer'):
-            self.g_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-5)
+            self.g_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-2)
 
         with tf.variable_scope('discriminator_optimizer'):
-            self.d_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-5)
+            self.d_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-2)
 
         """Train"""
         with tf.variable_scope('generator_training'):
