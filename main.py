@@ -74,7 +74,7 @@ def main(argv):
         session.run(init_dataset)
 
         """Summaries"""
-        writer=tf.summary.FileWriter("log/run",session.graph)
+        writer=tf.summary.FileWriter("log/run2",session.graph)
 
         """Learning"""
 
@@ -129,7 +129,7 @@ def main(argv):
             #    count+=1
                 #show()
 
-        saver.save(session,'log/run/last.ckpt')
+        saver.save(session,'log/run2/last.ckpt')
 
 
 if __name__=="__main__":
