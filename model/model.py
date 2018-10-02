@@ -8,25 +8,48 @@ class generator:
         with tf.variable_scope("Generator"):
 
             self.dense=tf.layers.dense(inputs=self.z,
-                    units=49*49*1,
+                    units=61*61*1,
                     use_bias=False,
                     activation=tf.nn.relu,
                     name='dense')
 
-            self.dense_reshape=tf.reshape(self.dense,(-1,49,49,1),name='reshape')
+            self.dense_reshape=tf.reshape(self.dense,(-1,61,61,1),name='reshape')
 
-            self.conv2d=tf.layers.conv2d(inputs=self.dense_reshape,
+            self.conv2d=tf.layers.conv2d_transpose(inputs=self.dense_reshape,
+                    filters=32,
+                    kernel_size=[2,2],
+                    strides=[1,1],
+                    padding='valid',
+                    use_bias=False,
+                    bias_initializer=tf.zeros_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.relu,
+                    name='conv2d')
+
+            self.conv2d_2=tf.layers.conv2d_transpose(inputs=self.conv2d,
+                    filters=16,
+                    kernel_size=[2,2],
+                    strides=[1,1],
+                    padding='valid',
+                    use_bias=False,
+                    bias_initializer=tf.zeros_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.relu,
+                    name='conv2d_2')
+
+            self.conv2d_3=tf.layers.conv2d_transpose(inputs=self.conv2d_2,
                     filters=1,
                     kernel_size=[2,2],
                     strides=[1,1],
                     padding='valid',
                     use_bias=False,
                     bias_initializer=tf.zeros_initializer(),
-                    kernel_initializer=tf.ones_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.relu,
-                    name='conv2d')
+                    name='conv2d_3')
+            print(self.conv2d_3)
             
-            self.output_image=tf.tanh(self.conv2d)
+            self.output_image=tf.tanh(self.conv2d_3)
 
 class discriminator:
     def __init__(self,x,reuse=False):
@@ -38,7 +61,7 @@ class discriminator:
         with tf.variable_scope("Discriminator",reuse=reuse):
 
             self.conv2d=tf.layers.conv2d(inputs=self.x,
-                    filters=16,
+                    filters=8,
                     kernel_size=[2,2],
                     strides=[1,1],
                     padding='valid',
@@ -47,8 +70,42 @@ class discriminator:
                     #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.leaky_relu,
                     name="conv2d")
+            
+            self.pool=tf.layers.average_pooling2d(inputs=self.conv2d,
+                    pool_size=[2,2],
+                    strides=[2,2],
+                    padding='valid',
+                    name="pool2d")
 
-            self.flatten=tf.layers.flatten(self.conv2d)
+            self.conv2d_2=tf.layers.conv2d(inputs=self.pool,
+                    filters=16,
+                    kernel_size=[2,2],
+                    strides=[1,1],
+                    padding='valid',
+                    #use_bias=False,
+                    bias_initializer=tf.zeros_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.leaky_relu,
+                    name="conv2d_2")
+
+            self.pool_2=tf.layers.average_pooling2d(inputs=self.conv2d_2,
+                    pool_size=[2,2],
+                    strides=[2,2],
+                    padding='valid',
+                    name="pool2d_2")
+
+            self.conv2d_3=tf.layers.conv2d(inputs=self.pool_2,
+                    filters=32,
+                    kernel_size=[2,2],
+                    strides=[1,1],
+                    padding='valid',
+                    #use_bias=False,
+                    bias_initializer=tf.zeros_initializer(),
+                    #kernel_initializer=tf.ones_initializer(),
+                    activation=tf.nn.leaky_relu,
+                    name="conv2d_3")
+
+            self.flatten=tf.layers.flatten(self.conv2d_3)
             p=tf.layers.dense(self.flatten,units=1)
             self.logits=tf.sigmoid(p)
 

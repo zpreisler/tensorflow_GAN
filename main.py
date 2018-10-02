@@ -8,17 +8,19 @@ def zbatch(n,m):
     from numpy import random,zeros,ones
     return random.uniform(0,1,size=[n,m])
 
-def implot(img,prefix="",count=0):
+def img_save(img,prefix="",count=0):
     from matplotlib.pyplot import imshow,show,figure,subplots_adjust,savefig,imsave,close
     from numpy import stack,concatenate,swapaxes
 
+    print("img.shape",img.shape)
     a=concatenate(img,0)
+    print("a.shape",a.shape)
     b=swapaxes(a,0,2)
     print("b.shape",b.shape)
     c=concatenate(b,0)
     print("c.shape",c.shape)
 
-    fig=figure(figsize=(12,12))
+    fig=figure(figsize=(16,16))
     subplots_adjust(left=0,bottom=0,right=1,top=1)
 
     name="conv/%s_%d.png"%(prefix,count)
@@ -27,6 +29,23 @@ def implot(img,prefix="",count=0):
     imsave(name,c)
     close(fig)
 
+def img_plot(img):
+    from matplotlib.pyplot import imshow,show,figure,subplots_adjust,savefig,imsave,close
+    from numpy import stack,concatenate,swapaxes
+
+    print("img.shape",img.shape)
+    a=concatenate(img,0)
+    print("a.shape",a.shape)
+    b=swapaxes(a,0,2)
+    print("b.shape",b.shape)
+    c=concatenate(b,0)
+    print("c.shape",c.shape)
+
+    fig=figure(figsize=(16,16))
+    subplots_adjust(left=0,bottom=0,right=1,top=1)
+
+    imshow(c)
+
 def main(argv):
     print("Generative Adversarial Network")
     from numpy import random
@@ -34,7 +53,7 @@ def main(argv):
     from model.model import generator,discriminator,GAN
 
     """Batch"""
-    batch_size=16
+    batch_size=32
     zbatch_size=1024
 
     img_batch,init_dataset=dataset(batch_size=batch_size)
@@ -67,6 +86,22 @@ def main(argv):
             print(v)
 
         session.run(img_batch)
+
+        conv,pool,conv2,pool2,conv3=session.run([gan.real_d.conv2d,
+            gan.real_d.pool,
+            gan.real_d.conv2d_2,
+            gan.real_d.pool_2,
+            gan.real_d.conv2d_3],
+            feed_dict={z:zbatch(batch_size,zbatch_size)}
+            )
+
+        #img_plot(conv)
+        #img_plot(pool)
+        #img_plot(conv2)
+        #img_plot(pool2)
+        img_plot(conv3)
+
+        show()
     
         count=0
 
@@ -87,9 +122,9 @@ def main(argv):
                 writer.add_summary(log,global_step=step)
 
             if step%5 is 0:
-                fd,rd=session.run([gan.fake_d.conv2d,gan.real_d.conv2d],feed_dict={z:zbatch(batch_size,zbatch_size)})
-                implot(fd,prefix="fd",count=count)
-                implot(rd,prefix="rd",count=count)
+                fd,rd=session.run([gan.fake_d.conv2d_3,gan.real_d.conv2d_3],feed_dict={z:zbatch(batch_size,zbatch_size)})
+                img_save(fd,prefix="fd",count=count)
+                img_save(rd,prefix="rd",count=count)
 
                 count+=1
                 #show()
