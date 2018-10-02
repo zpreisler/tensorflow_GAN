@@ -2,7 +2,7 @@ def _parse_fce(file):
     from numpy.random import uniform
     import tensorflow as tf
     img_str=tf.read_file(file)
-    img_decoded=tf.image.decode_png(img_str,channels=3)
+    img_decoded=tf.image.decode_png(img_str,channels=1)
     img_crop=tf.image.central_crop(img_decoded,0.5)
     img_resized=tf.image.resize_images(img_crop,[48,48])
     return img_resized/255.0
