@@ -7,27 +7,59 @@ class generator:
         import tensorflow as tf
         with tf.variable_scope("Generator"):
 
-            self.dense1=tf.layers.dense(inputs=self.z,
-                    units=2048,
+            self.dense_in=tf.layers.dense(inputs=self.z,
+                    units=64*4*4,
                     #use_bias=False,
                     activation=tf.nn.relu,
                     name='dense_1')
 
-            self.dense2=tf.layers.dense(inputs=self.dense1,
-                    units=1024,
-                    #use_bias=False,
+            self.dense_reshape=tf.reshape(self.dense_in,(-1,4,4,64),name='reshape')
+
+            print(self.dense_reshape)
+
+            self.ct1=tf.layers.conv2d_transpose(inputs=self.dense_reshape,
+                    filters=32,
+                    kernel_size=[4,4],
+                    strides=[2,2],
+                    padding='same',
                     activation=tf.nn.relu,
-                    name='dense_2')
+                    name="ct1")
 
-            self.dense3=tf.layers.dense(inputs=self.dense2,
-                    units=64*64,
-                    #use_bias=False,
+            print(self.ct1)
+
+            self.ct2=tf.layers.conv2d_transpose(inputs=self.ct1,
+                    filters=16,
+                    kernel_size=[4,4],
+                    strides=[2,2],
+                    padding='same',
                     activation=tf.nn.relu,
-                    name='dense_3')
+                    name="ct2")
 
-            self.dense_reshape=tf.reshape(self.dense3,(-1,64,64,1),name='reshape')
+            print(self.ct2)
 
-            self.output_image=self.dense_reshape
+            self.ct3=tf.layers.conv2d_transpose(inputs=self.ct2,
+                    filters=8,
+                    kernel_size=[4,4],
+                    strides=[2,2],
+                    padding='same',
+                    activation=tf.nn.relu,
+                    name="ct3")
+
+            print(self.ct3)
+
+            self.ct4=tf.layers.conv2d_transpose(inputs=self.ct3,
+                    filters=1,
+                    kernel_size=[4,4],
+                    strides=[2,2],
+                    padding='same',
+                    activation=tf.nn.relu,
+                    name="ct4")
+
+            print(self.ct4)
+
+            self.output_image=self.ct4
+
+            print(self.output_image)
 
 class discriminator:
     def __init__(self,x,reuse=False):
@@ -44,7 +76,7 @@ class discriminator:
                     strides=[1,1],
                     padding='valid',
                     #use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
+                    #bias_initializer=tf.zeros_initializer(),
                     #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.leaky_relu,
                     name="conv2d")
@@ -61,7 +93,7 @@ class discriminator:
                     strides=[1,1],
                     padding='valid',
                     #use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
+                    #bias_initializer=tf.zeros_initializer(),
                     #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.leaky_relu,
                     name="conv2d_2")
@@ -78,7 +110,7 @@ class discriminator:
                     strides=[1,1],
                     padding='valid',
                     #use_bias=False,
-                    bias_initializer=tf.zeros_initializer(),
+                    #bias_initializer=tf.zeros_initializer(),
                     #kernel_initializer=tf.ones_initializer(),
                     activation=tf.nn.leaky_relu,
                     name="conv2d_3")
@@ -94,7 +126,7 @@ class discriminator:
         return tf.reshape(a,shape)
 
 class GAN:
-    def __init__(self,x,z):
+    def __init__(self,x,z,learning_rate=1e-3):
         import tensorflow as tf
         self.x=x
         self.z=z
@@ -122,10 +154,10 @@ class GAN:
 
         """Optimizer"""
         with tf.variable_scope('generator_optimizer'):
-            self.g_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-2)
+            self.g_optimizer=tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
         with tf.variable_scope('discriminator_optimizer'):
-            self.d_optimizer=tf.train.GradientDescentOptimizer(learning_rate=1e-2)
+            self.d_optimizer=tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
         """Train"""
         with tf.variable_scope('generator_training'):

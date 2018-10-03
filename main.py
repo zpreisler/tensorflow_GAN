@@ -6,7 +6,8 @@ import tensorflow as tf
 
 def zbatch(n,m):
     from numpy import random,zeros,ones
-    return random.uniform(0,1,size=[n,m])
+    #return random.uniform(0,1,size=[n,m])
+    return random.normal(0,1,size=[n,m])
 
 def img_save(img,prefix="",count=0):
     from matplotlib.pyplot import imshow,show,figure,subplots_adjust,savefig,imsave,close
@@ -53,15 +54,15 @@ def main(argv):
     from model.model import generator,discriminator,GAN
 
     """Batch"""
-    batch_size=32
-    zbatch_size=1024
+    batch_size=16
+    zbatch_size=4096
 
-    img_batch,init_dataset=dataset("images/*.png",batch_size=batch_size)
+    img_batch,init_dataset=dataset("images_made/*.png",batch_size=batch_size)
 
     """GAN"""
 
     z=tf.placeholder(tf.float32,[None,zbatch_size])
-    gan=GAN(img_batch,z=z)
+    gan=GAN(img_batch,z=z,learning_rate=1e-5)
 
     """Checkpoints"""
     saver=tf.train.Saver()
@@ -74,7 +75,7 @@ def main(argv):
         session.run(init_dataset)
 
         """Summaries"""
-        writer=tf.summary.FileWriter("log/run2",session.graph)
+        writer=tf.summary.FileWriter("log/run",session.graph)
 
         """Learning"""
 
@@ -97,7 +98,8 @@ def main(argv):
                 log=session.run(gan.summaries,feed_dict={z:zbatch(batch_size,zbatch_size)})
                 writer.add_summary(log,global_step=step)
 
-            saver.save(session,'log/run2/last.ckpt')
+            if step%1000 is 0:
+                saver.save(session,'log/run/last.ckpt')
 
 
 if __name__=="__main__":
