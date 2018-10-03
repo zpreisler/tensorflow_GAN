@@ -23,6 +23,7 @@ class generator:
                     strides=[2,2],
                     padding='same',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.orthogonal_initializer,
                     name="ct1")
 
             print(self.ct1)
@@ -33,6 +34,7 @@ class generator:
                     strides=[2,2],
                     padding='same',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.orthogonal_initializer,
                     name="ct2")
 
             print(self.ct2)
@@ -43,6 +45,7 @@ class generator:
                     strides=[2,2],
                     padding='same',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.orthogonal_initializer,
                     name="ct3")
 
             print(self.ct3)
@@ -53,6 +56,7 @@ class generator:
                     strides=[2,2],
                     padding='same',
                     activation=tf.nn.relu,
+                    kernel_initializer=tf.orthogonal_initializer,
                     name="ct4")
 
             print(self.ct4)
@@ -78,6 +82,7 @@ class discriminator:
                     #use_bias=False,
                     #bias_initializer=tf.zeros_initializer(),
                     #kernel_initializer=tf.ones_initializer(),
+                    #kernel_initializer=tf.orthogonal_initializer,
                     activation=tf.nn.leaky_relu,
                     name="conv2d")
             

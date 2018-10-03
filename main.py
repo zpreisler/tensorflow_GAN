@@ -62,7 +62,7 @@ def main(argv):
     """GAN"""
 
     z=tf.placeholder(tf.float32,[None,zbatch_size])
-    gan=GAN(img_batch,z=z,learning_rate=1e-5)
+    gan=GAN(img_batch,z=z,learning_rate=1e-3)
 
     """Checkpoints"""
     saver=tf.train.Saver()
