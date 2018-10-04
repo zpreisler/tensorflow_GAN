@@ -58,11 +58,11 @@ def main(argv):
     from model.model import generator,discriminator,GAN
 
     """Batch"""
-    batch_size=128
+    batch_size=16
     xbatch_size=128
-    zbatch_size=256
+    zbatch_size=512
 
-    steps=50000
+    steps=10000
     d_steps=8
     g_steps=8
 
@@ -72,7 +72,10 @@ def main(argv):
 
     x=tf.placeholder(tf.float32,[None,xbatch_size])
     z=tf.placeholder(tf.float32,[None,zbatch_size])
-    gan=GAN(x=x,z=z,learning_rate=1e-2)
+
+    dp=tf.placeholder(tf.int32)
+
+    gan=GAN(x=x,z=z,dd=dp,learning_rate=1e-2)
 
     """Checkpoints"""
     saver=tf.train.Saver()
@@ -82,6 +85,7 @@ def main(argv):
     print(xx.shape)
 
     from matplotlib.pyplot import plot,show,figure,close,savefig,xlim,ylim,legend
+    from numpy import array
 
     with tf.Session() as session:
         print("Session")
@@ -95,19 +99,38 @@ def main(argv):
 
         count=0
         """Learning"""
+
+        #ddd=array([1,1,1,1])
+        #ddd=1
+        ddd=random.randint(2,size=10)
+
         for step in range(1,steps):
             for d_step in range(d_steps):
-                _,dd=session.run([gan.d_train,gan.d_loss],feed_dict={x: xbatch(batch_size,xbatch_size), z: zbatch(batch_size,zbatch_size)})
+                _,dd=session.run([gan.d_train,gan.d_loss],
+                        feed_dict={x: xbatch(batch_size,xbatch_size),
+                            z: zbatch(batch_size,zbatch_size),
+                            dp: ddd})
+
             for g_step in range(g_steps):
-                _,gg=session.run([gan.g_train,gan.g_loss],feed_dict={x: xbatch(batch_size,xbatch_size), z: zbatch(batch_size,zbatch_size)})
+                _,gg=session.run([gan.g_train,gan.g_loss],
+                        feed_dict={x: xbatch(batch_size,xbatch_size),
+                            z: zbatch(batch_size,zbatch_size),
+                            dp: ddd})
 
             if step%5 is 0:
                 print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
-                log=session.run(gan.summaries,feed_dict={x: xbatch(batch_size,xbatch_size), z:zbatch(batch_size,zbatch_size)})
+                log=session.run(gan.summaries,
+                        feed_dict={x: xbatch(batch_size,xbatch_size),
+                            z:zbatch(batch_size,zbatch_size),
+                            dp: ddd})
                 writer.add_summary(log,global_step=step)
                 
-                gg,dd=session.run([gan.g.output_image,gan.x],feed_dict={x: xbatch(batch_size,xbatch_size), z:zbatch(batch_size,zbatch_size)})
+                gg,dd,ty=session.run([gan.g.output,gan.x,gan.g_dd],
+                        feed_dict={x: xbatch(batch_size,xbatch_size),
+                            z:zbatch(batch_size,zbatch_size),
+                            dp: ddd})
+                print(ty)
 
                 figure()
                 plot(gg[0],label="generated %d"%count)
