@@ -7,63 +7,19 @@ class generator:
         import tensorflow as tf
         with tf.variable_scope("Generator"):
 
-            self.dense_in=tf.layers.dense(inputs=self.z,
-                    units=64*4*4,
-                    #use_bias=False,
-                    activation=tf.nn.relu,
+            self.dense_1=tf.layers.dense(inputs=self.z,
+                    units=128,
+                    activation=tf.nn.leaky_relu,
+                    kernel_initializer=tf.orthogonal_initializer,
                     name='dense_1')
-
-            self.dense_reshape=tf.reshape(self.dense_in,(-1,4,4,64),name='reshape')
-
-            print(self.dense_reshape)
-
-            self.ct1=tf.layers.conv2d_transpose(inputs=self.dense_reshape,
-                    filters=32,
-                    kernel_size=[4,4],
-                    strides=[2,2],
-                    padding='same',
-                    activation=tf.nn.relu,
+            
+            self.dense_2=tf.layers.dense(inputs=self.dense_1,
+                    units=128,
+                    activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
-                    name="ct1")
+                    name='dense_2')
 
-            print(self.ct1)
-
-            self.ct2=tf.layers.conv2d_transpose(inputs=self.ct1,
-                    filters=16,
-                    kernel_size=[4,4],
-                    strides=[2,2],
-                    padding='same',
-                    activation=tf.nn.relu,
-                    kernel_initializer=tf.orthogonal_initializer,
-                    name="ct2")
-
-            print(self.ct2)
-
-            self.ct3=tf.layers.conv2d_transpose(inputs=self.ct2,
-                    filters=8,
-                    kernel_size=[4,4],
-                    strides=[2,2],
-                    padding='same',
-                    activation=tf.nn.relu,
-                    kernel_initializer=tf.orthogonal_initializer,
-                    name="ct3")
-
-            print(self.ct3)
-
-            self.ct4=tf.layers.conv2d_transpose(inputs=self.ct3,
-                    filters=1,
-                    kernel_size=[4,4],
-                    strides=[2,2],
-                    padding='same',
-                    activation=tf.nn.relu,
-                    kernel_initializer=tf.orthogonal_initializer,
-                    name="ct4")
-
-            print(self.ct4)
-
-            self.output_image=self.ct4
-
-            print(self.output_image)
+            self.output_image=self.dense_2
 
 class discriminator:
     def __init__(self,x,reuse=False):
@@ -74,67 +30,38 @@ class discriminator:
         import tensorflow as tf
         with tf.variable_scope("Discriminator",reuse=reuse):
 
-            self.conv2d=tf.layers.conv2d(inputs=self.x,
-                    filters=8,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    #use_bias=False,
-                    #bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
-                    #kernel_initializer=tf.orthogonal_initializer,
+            self.dense_1=tf.layers.dense(inputs=self.x,
+                    units=128,
                     activation=tf.nn.leaky_relu,
-                    name="conv2d")
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_1')
             
-            self.pool=tf.layers.average_pooling2d(inputs=self.conv2d,
-                    pool_size=[2,2],
-                    strides=[2,2],
-                    padding='valid',
-                    name="pool2d")
-
-            self.conv2d_2=tf.layers.conv2d(inputs=self.pool,
-                    filters=16,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    #use_bias=False,
-                    #bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
+            self.dense_2=tf.layers.dense(inputs=self.dense_1,
+                    units=128,
                     activation=tf.nn.leaky_relu,
-                    name="conv2d_2")
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_2')
 
-            self.pool_2=tf.layers.average_pooling2d(inputs=self.conv2d_2,
-                    pool_size=[2,2],
-                    strides=[2,2],
-                    padding='valid',
-                    name="pool2d_2")
-
-            self.conv2d_3=tf.layers.conv2d(inputs=self.pool_2,
-                    filters=32,
-                    kernel_size=[2,2],
-                    strides=[1,1],
-                    padding='valid',
-                    #use_bias=False,
-                    #bias_initializer=tf.zeros_initializer(),
-                    #kernel_initializer=tf.ones_initializer(),
+            self.dense_3=tf.layers.dense(inputs=self.dense_2,
+                    units=2,
                     activation=tf.nn.leaky_relu,
-                    name="conv2d_3")
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_3')
 
-            self.flatten=tf.layers.flatten(self.conv2d_3)
-            p=tf.layers.dense(self.flatten,units=1)
-            self.logits=tf.sigmoid(p)
+            self.dense_out=tf.layers.dense(inputs=self.dense_3,
+                    units=1,
+                    activation=tf.nn.leaky_relu,
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_out')
 
-    def gauss_noise(x,std,shape,name='Noise'):
-        with tf.name_scope(name):
-            n=tf.truncated_normal(shape=tf.shape(x),mean=0.0,stddev=std,dtype=tf.float32)
-            a=tf.add(x,n)
-        return tf.reshape(a,shape)
+            self.logits=tf.sigmoid(self.dense_out)
 
 class GAN:
-    def __init__(self,x,z,learning_rate=1e-3):
+    def __init__(self,x,z,learning_rate=1e-2):
         import tensorflow as tf
         self.x=x
         self.z=z
+
         self.g=generator(self.z)
 
         self.real_d=discriminator(self.x)
@@ -174,7 +101,10 @@ class GAN:
         tf.summary.scalar("Generator_loss",self.g_loss)
         tf.summary.scalar("Discriminator_loss",self.d_loss)
 
-        tf.summary.image("Generator_image",self.g.output_image,max_outputs=24)
-        tf.summary.image("Discrminator_image",self.x,max_outputs=24)
+        #tf.summary.image("Generator_image",self.g.output_image,max_outputs=24)
+        #tf.summary.image("Discrminator_image",self.x,max_outputs=24)
+
+        #tf.summary.histogram("Generator_image",self.g.output_image)
+        #tf.summary.histogram("Discrminator_image",self.x)
 
         self.summaries=tf.summary.merge_all()
