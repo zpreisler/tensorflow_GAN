@@ -8,18 +8,24 @@ class generator:
         with tf.variable_scope("Generator"):
 
             self.dense_1=tf.layers.dense(inputs=self.z,
-                    units=128,
+                    units=300,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_1')
             
             self.dense_2=tf.layers.dense(inputs=self.dense_1,
-                    units=128,
+                    units=400,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_2')
 
-            self.output=self.dense_2
+            self.dense_3=tf.layers.dense(inputs=self.dense_2,
+                    units=128,
+                    activation=tf.nn.leaky_relu,
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_3')
+
+            self.output=self.dense_3
 
 class discriminator:
     def __init__(self,x,reuse=False,name='Discriminator'):
@@ -32,13 +38,13 @@ class discriminator:
         with tf.variable_scope(self.name,reuse=reuse):
 
             self.dense_1=tf.layers.dense(inputs=self.x,
-                    units=128,
+                    units=256,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_1')
             
             self.dense_2=tf.layers.dense(inputs=self.dense_1,
-                    units=128,
+                    units=200,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_2')
@@ -58,14 +64,14 @@ class discriminator:
             self.logits=tf.sigmoid(self.dense_out)
 
 class GAN:
-    def __init__(self,x,z,dd,learning_rate=1e-2):
+    def __init__(self,x,z,gan_dropout,learning_rate=1e-2):
         import tensorflow as tf
         nd=4
 
         self.x=x
         self.z=z
 
-        self.dd=dd
+        self.gan_dropout=gan_dropout
 
         self.g=generator(self.z)
         self.discriminator_ensemble(nd=nd)
@@ -124,20 +130,35 @@ class GAN:
         import tensorflow as tf
         with tf.name_scope('discriminator_loss'):
             self.d_loss=0
+            count=1.0
             for n in range(nd):
                 self.d_loss+=self.real_loss[n]+self.fake_loss[n]
-            self.d_loss/=nd
+                count+=1.0
+            self.d_loss/=count
+
+    def f1(self):
+        import tensorflow as tf
+        return tf.constant(0.0)
+
+    def f2(self):
+        import tensorflow as tf
+        return tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(self.fake[self.n].logits),logits=self.fake[self.n].logits)
 
     def define_generator_loss(self,nd=8):
         import tensorflow as tf
         with tf.name_scope('generator_loss'):
             self.g_loss=0
+
+            s=tf.reduce_sum(self.gan_dropout)
+            s=tf.to_float(s)
+
             for n in range(nd):
-                self.g_loss+=tf.losses.sigmoid_cross_entropy(
-                        tf.ones_like(self.fake[n].logits),
-                        self.fake[n].logits)
-            self.g_dd=self.dd
-            self.g_loss/=nd
+                x=self.gan_dropout[n]
+                self.n=n
+                self.g_loss+=tf.cond(x>0,
+                        self.f2,
+                        self.f1)
+            self.g_loss/=s
 
     def get_collections(self):
         import tensorflow as tf

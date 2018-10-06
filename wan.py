@@ -45,10 +45,40 @@ def mix_peak(n,m,t=2048):
     p=array(p)
     return p/p.max()
 
+def mixed_peak(n,m,t=2048):
+    from numpy import random,zeros,ones,histogram,array,add,concatenate
+    #if random.randint(2) is 0:
+    #    rnd1=random.normal(0,1,(n,t))
+    #    rnd2=random.normal(5,1,(n,t))
+    #    rnd=concatenate((rnd1,rnd2),1)
+    #else:
+    #    rnd=random.normal(0,1,(n,t*2))
+
+    r=[]
+    for n in range(n):
+        if random.randint(2) is 0:
+            rnd=random.normal(0,1,(t*2))
+        else:
+            rnd1=random.normal(0,1,(t))
+            rnd2=random.normal(5,1,(t))
+            rnd=concatenate((rnd1,rnd2),0)
+
+        r+=[rnd]
+    rnd=r
+
+    p=[]
+    for r in rnd:
+        h,x=histogram(r,bins=m)
+        p+=[[*h]]
+    p=array(p)
+    return p/p.max()
+
+
+
 def xbatch(n,m,mode=0):
     from numpy import random,zeros,ones,histogram,array,add,concatenate
-    fce=[one_peak(n,m),two_peak(n,m),mix_peak(n,m)]
-    return fce[2]
+    fce=[one_peak(n,m),two_peak(n,m),mix_peak(n,m),mixed_peak(n,m)]
+    return fce[3]
     #return fce[mode]
 
 def main(argv):
@@ -58,11 +88,11 @@ def main(argv):
     from model.model import generator,discriminator,GAN
 
     """Batch"""
-    batch_size=16
+    batch_size=32
     xbatch_size=128
     zbatch_size=512
 
-    steps=10000
+    steps=20000
     d_steps=8
     g_steps=8
 
@@ -84,7 +114,7 @@ def main(argv):
     #print(x)
     #print(xx.shape)
 
-    from matplotlib.pyplot import plot,show,figure,close,savefig,xlim,ylim,legend
+    from matplotlib.pyplot import plot,show,figure,close,savefig,xlim,ylim,legend,subplots
     from numpy import array
 
     with tf.Session() as session:
@@ -116,7 +146,7 @@ def main(argv):
                             z: zbatch(batch_size,zbatch_size),
                             gan_dropout: d_dropout})
 
-            if step%5 is 0:
+            if step%40 is 0:
                 print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
                 log=session.run(gan.summaries,
@@ -132,17 +162,20 @@ def main(argv):
 
                 print(dropout,count)
 
-                figure(figsize=(16,16))
-                plot(gg[0],label="generated %d"%count)
-                plot(dd[0],label="true")
-                xlim(0,xbatch_size)
-                ylim(-0.2,1.2)
-                legend(frameon=False,loc=1)
+                fig,axes=subplots(4,4,constrained_layout=True,figsize=(12,12))
+                for n in range(4):
+                    for m in range(4):
+                        axes[n,m].plot(gg[n*4+m],label="generated %d"%count)
+                        axes[n,m].plot(dd[n*4+m],label="true")
+                        axes[n,m].set_xlim(0,xbatch_size)
+                        axes[n,m].set_ylim(-0.2,1.2)
+                        axes[n,m].legend(frameon=False,loc=1)
+
                 savefig("figures/"+run+"/f_%04d.png"%count)
                 count+=1
                 close()
 
-            if step%10 is 0:
+            if step%1 is 0:
                 d_dropout=random.randint(2,size=4)
                 s=sum(d_dropout)
                 while (s==0):
@@ -151,7 +184,7 @@ def main(argv):
 
                 print(s)
 
-            if step%100 is 0:
+            if step%1000 is 0:
                 saver.save(session,'log/'+run+'/last.ckpt')
 
 
