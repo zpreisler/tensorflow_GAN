@@ -113,9 +113,11 @@ def main(argv):
     #xx=xbatch(batch_size,xbatch_size)
     #print(x)
     #print(xx.shape)
+    nx=4
+    ny=4
 
     from matplotlib.pyplot import plot,show,figure,close,savefig,xlim,ylim,legend,subplots
-    from numpy import array
+    from numpy import array,arange
 
     with tf.Session() as session:
         print("Session")
@@ -146,7 +148,7 @@ def main(argv):
                             z: zbatch(batch_size,zbatch_size),
                             gan_dropout: d_dropout})
 
-            if step%40 is 0:
+            if step%5 is 0:
                 print("[%d] d:%lf g:%lf"%(step,dd,gg))
 
                 log=session.run(gan.summaries,
@@ -155,25 +157,30 @@ def main(argv):
                             gan_dropout: d_dropout})
                 writer.add_summary(log,global_step=step)
                 
-                gg,dd,dropout=session.run([gan.g.output,gan.x,gan.gan_dropout],
+            if step%50 is 0:
+                gg,dd=session.run([gan.g.output,gan.x],
                         feed_dict={x: xbatch(batch_size,xbatch_size),
                             z:zbatch(batch_size,zbatch_size),
                             gan_dropout: d_dropout})
 
-                print(dropout,count)
+                print(count,gg.shape,dd.shape)
 
-                fig,axes=subplots(4,4,constrained_layout=True,figsize=(12,12))
-                for n in range(4):
-                    for m in range(4):
-                        axes[n,m].plot(gg[n*4+m],label="generated %d"%count)
-                        axes[n,m].plot(dd[n*4+m],label="true")
-                        axes[n,m].set_xlim(0,xbatch_size)
-                        axes[n,m].set_ylim(-0.2,1.2)
-                        axes[n,m].legend(frameon=False,loc=1)
+                #fig,axes=subplots(nx,ny,constrained_layout=True,figsize=(12,12))
+                fig,axes=subplots(nx,ny,figsize=(12,12))
+
+                for nn in arange(nx):
+                    for mm in arange(ny):
+                        print(nn,mm)
+                        axes[nn,mm].plot(gg[nn*4+mm],label="generated %d"%count)
+                        axes[nn,mm].plot(dd[nn*4+mm],label="true")
+                        axes[nn,mm].set_xlim(0,xbatch_size)
+                        axes[nn,mm].set_ylim(-0.2,1.2)
+                        axes[nn,mm].legend(frameon=False,loc=1)
 
                 savefig("figures/"+run+"/f_%04d.png"%count)
-                count+=1
                 close()
+
+                count+=1
 
             if step%1 is 0:
                 d_dropout=random.randint(2,size=4)
