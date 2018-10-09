@@ -10,22 +10,32 @@ class generator:
             self.dense_1=tf.layers.dense(inputs=self.z,
                     units=300,
                     activation=tf.nn.leaky_relu,
-                    kernel_initializer=tf.orthogonal_initializer,
+                    #kernel_initializer=tf.orthogonal_initializer,
+                    use_bias=False,
                     name='dense_1')
             
             self.dense_2=tf.layers.dense(inputs=self.dense_1,
-                    units=400,
+                    units=600,
                     activation=tf.nn.leaky_relu,
-                    kernel_initializer=tf.orthogonal_initializer,
+                    #kernel_initializer=tf.orthogonal_initializer,
+                    use_bias=False,
                     name='dense_2')
 
             self.dense_3=tf.layers.dense(inputs=self.dense_2,
-                    units=128,
-                    activation=tf.nn.leaky_relu,
-                    kernel_initializer=tf.orthogonal_initializer,
+                    units=500,
+                    activation=tf.tanh,
+                    #kernel_initializer=tf.orthogonal_initializer,
+                    use_bias=False,
                     name='dense_3')
 
-            self.output=self.dense_3
+            self.dense_4=tf.layers.dense(inputs=self.dense_3,
+                    units=128,
+                    activation=tf.tanh,
+                    #kernel_initializer=tf.orthogonal_initializer,
+                    use_bias=False,
+                    name='dense_4')
+
+            self.output=self.dense_4
 
 class discriminator:
     def __init__(self,x,reuse=False,name='Discriminator'):
@@ -44,18 +54,30 @@ class discriminator:
                     name='dense_1')
             
             self.dense_2=tf.layers.dense(inputs=self.dense_1,
-                    units=200,
+                    units=300,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_2')
 
             self.dense_3=tf.layers.dense(inputs=self.dense_2,
-                    units=2,
+                    units=300,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,
                     name='dense_3')
 
-            self.dense_out=tf.layers.dense(inputs=self.dense_3,
+            self.dense_4=tf.layers.dense(inputs=self.dense_3,
+                    units=300,
+                    activation=tf.nn.leaky_relu,
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_4')
+
+            self.dense_5=tf.layers.dense(inputs=self.dense_4,
+                    units=300,
+                    activation=tf.nn.leaky_relu,
+                    kernel_initializer=tf.orthogonal_initializer,
+                    name='dense_5')
+
+            self.dense_out=tf.layers.dense(inputs=self.dense_5,
                     units=1,
                     activation=tf.nn.leaky_relu,
                     kernel_initializer=tf.orthogonal_initializer,

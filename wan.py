@@ -6,7 +6,15 @@ import tensorflow as tf
 
 def zbatch(n,m):
     from numpy import random,zeros,ones
-    return random.uniform(0,1,size=[n,m])
+    return random.normal(0,size=[n,m])
+
+def zbatch0(n,m):
+    from numpy import random,zeros,ones
+    rnd=random.normal(0,size=[n,m])
+    rnd[0]=ones(m)
+    rnd[1]=ones(m)*-1
+    rnd[2]=ones(m)*0.0
+    return rnd
 
 def one_peak(n,m,t=4096):
     from numpy import random,zeros,ones,histogram,array,add,concatenate
@@ -92,11 +100,11 @@ def main(argv):
     xbatch_size=128
     zbatch_size=512
 
-    steps=20000
-    d_steps=8
-    g_steps=8
+    steps=200000
+    d_steps=4
+    g_steps=4
 
-    run="wan"
+    run="wan5"
 
     """GAN"""
 
@@ -105,7 +113,7 @@ def main(argv):
 
     gan_dropout=tf.placeholder(tf.int32)
 
-    gan=GAN(x=x,z=z,gan_dropout=gan_dropout,learning_rate=1e-2)
+    gan=GAN(x=x,z=z,gan_dropout=gan_dropout,learning_rate=1e-3)
 
     """Checkpoints"""
     saver=tf.train.Saver()
@@ -117,7 +125,7 @@ def main(argv):
     ny=4
 
     from matplotlib.pyplot import plot,show,figure,close,savefig,xlim,ylim,legend,subplots
-    from numpy import array,arange
+    from numpy import array,arange,zeros
 
     with tf.Session() as session:
         print("Session")
@@ -160,7 +168,7 @@ def main(argv):
             if step%50 is 0:
                 gg,dd=session.run([gan.g.output,gan.x],
                         feed_dict={x: xbatch(batch_size,xbatch_size),
-                            z:zbatch(batch_size,zbatch_size),
+                            z:zbatch0(batch_size,zbatch_size),
                             gan_dropout: d_dropout})
 
                 print(count,gg.shape,dd.shape)
@@ -182,7 +190,7 @@ def main(argv):
 
                 count+=1
 
-            if step%1 is 0:
+            if step%10 is 0:
                 d_dropout=random.randint(2,size=4)
                 s=sum(d_dropout)
                 while (s==0):
